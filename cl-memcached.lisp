@@ -165,7 +165,10 @@ around a body of actual action statements"
 	 (setf us (mc-make-pool-item :memcache memcache)))
      (unwind-protect
 	  (when us
-	    (let ((s (usocket:socket-stream us)))
+	    (let ((s (make-flexi-stream
+                (usocket:socket-stream us)
+                :external-format (flex:make-external-format :utf-8)
+                :element-type '(unsigned-byte 8))))
 	      (handler-case (progn ,@body)
 		(error (c) (when use-pool
 			     (mc-chuck-from-pool us memcache))
@@ -231,12 +234,13 @@ value is of type (UNSIGNED-BYTE 8)"
        until (search "END" x :test #'string-equal)
        collect (let* ((status-line (split-sequence:split-sequence #\Space x))
 		      (len (parse-integer (fourth status-line)))
-		      (seq (if is-string
-			       (make-array len :element-type 'character)
-			       (make-sequence '(vector (unsigned-byte 8)) len))))
+		      (seq (make-sequence '(vector (unsigned-byte 8)) len)))
 		 (read-sequence seq s)
 		 (read-line s nil nil)
-		 (list (second status-line) seq)))))
+		 (cons (second status-line)
+               (if is-string
+                   (flex:octets-to-string seq :external-format :utf-8)
+                   seq))))))
 
 
 (defun mc-get+ (key-or-list-of-keys &key (memcache *memcache*) (use-pool *use-pool*))
@@ -244,7 +248,7 @@ value is of type (UNSIGNED-BYTE 8)"
 returns the response in string format"
   (if (listp key-or-list-of-keys)
       (mc-get key-or-list-of-keys :memcache memcache :use-pool use-pool)
-      (second (first (mc-get (list key-or-list-of-keys) :memcache memcache :use-pool use-pool :is-string t)))))
+      (cdr (first (mc-get (list key-or-list-of-keys) :memcache memcache :use-pool use-pool :is-string t)))))
 
 
 

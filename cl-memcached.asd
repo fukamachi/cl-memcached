@@ -19,9 +19,9 @@
   :author "quasi <quasi@cleartrip.com>"
   :serial t
   :depends-on (:usocket
-	       :split-sequence)
+               :split-sequence
+               :flexi-streams)
   :components ((:file "packages")
 	       (:file "util")
 	       (:file "compat")
 	       (:file "cl-memcached")))
- 
